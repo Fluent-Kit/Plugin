@@ -22,14 +22,4 @@ class PluginManager extends Manager
     {
         return 'fluentkit';
     }
-
-    /**
-     * Detect available themes.
-     *
-     * @return array
-     */
-    public function detect()
-    {
-        return $this->app['fluentkit.plugin.finder']->detect();
-    }
 }

@@ -3,6 +3,8 @@ namespace FluentKit\Plugin;
 
 use Illuminate\Container\Container as Application;
 
+use Illuminate\Support\Collection;
+
 class Finder
 {
     /**
@@ -12,14 +14,18 @@ class Finder
      */
     protected $app;
 
+    protected $collection;
+
     /**
      * Construct a new finder.
      *
      * @param  \Illuminate\Container\Container  $app
      */
-    public function __construct(Application $app)
+    public function __construct(Application $app, Collection $collection)
     {
         $this->app = $app;
+
+        $this->collection = $collection;
     }
 
     /**
@@ -28,9 +34,8 @@ class Finder
      * @return array
      * @throws \RuntimeException
      */
-    public function detect()
+    public function collection()
     {
-        $plugins = array();
         $file   = $this->app['files'];
         $path   = rtrim($this->app['path.public'], '/').'/content/plugins/';
 
@@ -38,10 +43,10 @@ class Finder
 
         foreach ($folders as $folder) {
             $name = $this->parsePluginNameFromPath($folder);
-            $plugins[$name] = new Manifest($file, rtrim($folder, '/').'/');
+            $this->collection->put($name, new Manifest($file, rtrim($folder, '/').'/'));
         }
 
-        return $plugins;
+        return $this->collection;
     }
 
     /**

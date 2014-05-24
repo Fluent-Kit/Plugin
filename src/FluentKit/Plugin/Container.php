@@ -41,13 +41,6 @@ class Container
     protected $booted = false;
 
     /**
-     * Theme name.
-     *
-     * @var string
-     */
-    protected $plugin = null;
-
-    /**
      * Start theme engine, this should be called from application booted
      * or whenever we need to overwrite current active theme per request.
      *
@@ -65,98 +58,33 @@ class Container
         $this->relativeUrl = trim(str_replace($baseUrl, '/', $this->absoluteUrl), '/');
     }
 
-    /**
-     * Get the theme.
-     *
-     * @return string
-     */
-    public function getTheme()
-    {
-        return $this->theme;
-    }
 
     /**
-     * Boot the theme by autoloading all the relevant files.
+     * Detect available themes.
      *
-     * @return boolean
-     */
-    public function boot()
-    {
-        if ($this->booted) {
-            return false;
-        }
-
-        $this->booted = true;
-
-        $themePath = $this->getThemePath();
-
-        // There might be situation where Orchestra Platform was unable
-        // to get theme information, we should only assume there a valid
-        // theme when manifest is actually an instance of
-        // Orchestra\View\Theme\Manifest.
-        if (! $this->app['files']->isDirectory($themePath)) {
-            return false;
-        }
-
-        $autoload = $this->getThemeAutoloadFiles($themePath);
-
-        foreach ($autoload as $file) {
-            $file = ltrim($file, '/');
-            $this->app['files']->requireOnce("{$themePath}/{$file}");
-        }
-
-        $this->app['events']->fire("fluentkit.theme.boot: {$this->theme}");
-
-        return true;
-    }
-
-    /**
-     * Get theme path.
-     *
-     * @return string
-     */
-    public function getThemePath()
-    {
-        return "{$this->path}/{$this->theme}";
-    }
-
-    /**
-     * URL helper for the theme.
-     *
-     * @param  string   $url
-     * @return string
-     */
-    public function to($url = '')
-    {
-        return "{$this->absoluteUrl}/{$this->theme}/{$url}";
-    }
-
-    /**
-     * Relative URL helper for theme.
-     *
-     * @param  string   $url
-     * @return string
-     */
-    public function asset($url = '')
-    {
-        return "/{$this->relativeUrl}/{$this->theme}/{$url}";
-    }
-
-    /**
-     * Get theme autoload files from manifest.
-     *
-     * @param  string $themePath
      * @return array
      */
-    protected function getThemeAutoloadFiles($themePath)
+    public function all()
     {
-        $autoload = array();
-        $manifest = new Manifest($this->app['files'], $themePath);
-
-        if (isset($manifest->autoload) && is_array($manifest->autoload)) {
-            $autoload = $manifest->autoload;
-        }
-
-        return $autoload;
+        return $this->app['fluentkit.plugin.finder']->collection();
     }
+
+    public function activated(){
+    	return $this->app['fluentkit.plugin.finder']->collection();
+    }
+
+    /**
+     * Detect available themes.
+     *
+     * @return array
+     */
+    public function get($key)
+    {
+
+		$plugins = $this->app['fluentkit.plugin.finder']->collection()->filter(function($plugin) use ($key){
+			return ($plugin->uid == $key) ? true : false;
+		});
+		return $plugins->first();
+    }
+
 }

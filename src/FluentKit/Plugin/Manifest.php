@@ -86,4 +86,16 @@ class Manifest
     {
         return isset($this->items->{$key});
     }
+
+	/**
+     * Magic Method to check isset by key.
+     *
+     * @param  string   $key
+     * @return boolean
+     */
+    public function __set($key, $value)
+    {	
+        $this->items->{$key} = $value;
+    }
+
 }
