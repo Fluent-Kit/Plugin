@@ -13,7 +13,7 @@ class ServiceProvider extends LaravelProvider {
 
     public function registerPlugin($plugin)
 	{
-		$path = rtrim($this->app['path.public'], '/') . '/content/plugins/' . $plugin;
+		$path = rtrim($this->app['path.public'], '/') . '/content/plugins/' . $plugin . '/src';
 		return $this->package($plugin, $plugin, $path);
 	}
     

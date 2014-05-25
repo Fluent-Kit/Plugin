@@ -26,21 +26,7 @@ class PluginServiceProvider extends ServiceProvider {
 
         $this->app['fluentkit.plugin']->activated()->each(function($plugin){
 
-        	//setup autoloader to save plugins having to do it every time
-        	ClassLoader::register();
-        	ClassLoader::addDirectories(array($plugin->path . '/src', $plugin->path . '/migrations'));
-
-        	//require autoload files - not advised really, plugins should make full use of service providers to add functionality
-        	if(isset($plugin->autoload->files)){
-	        	foreach( (array) $plugin->autoload->files as $file){
-	        		$this->app['files']->requireOnce($plugin->path . '/' . $file);
-	        	}
-	        }
-
-        	//register providers
-        	foreach( (array) $plugin->providers as $provider){
-        		$this->app->register($provider);
-        	}
+        	$plugin->register();
         });
 
         //register facades
@@ -58,7 +44,11 @@ class PluginServiceProvider extends ServiceProvider {
      */
     public function boot()
     {
-
+        \Route::any('plugins', function(){
+            \Plugin::activate('clients');
+            echo 'hello';
+            //print_r(\Plugin::activated());
+        });
     }
 
     public function provides(){

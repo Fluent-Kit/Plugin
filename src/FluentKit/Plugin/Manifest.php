@@ -3,6 +3,7 @@ namespace FluentKit\Plugin;
 
 use RuntimeException;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\ClassLoader;
 
 class Manifest
 {
@@ -19,6 +20,8 @@ class Manifest
      * @var Object
      */
     protected $items;
+    
+    protected $app;
 
     /**
      * Load the theme.
@@ -27,10 +30,11 @@ class Manifest
      * @param  string                               $path
      * @throws \RuntimeException
      */
-    public function __construct(Filesystem $files, $path)
+    public function __construct(Filesystem $files, $app, $path)
     {
         $path        = rtrim($path, '/');
         $this->files = $files;
+        $this->app = $app;
 
         if ($files->exists($manifest = "{$path}/plugin.json")) {
             $this->items = json_decode($files->get($manifest));
@@ -44,6 +48,32 @@ class Manifest
 
             $this->items->uid  = $this->parsePluginNameFromPath($path);
             $this->items->path = $path;
+            $this->items->active = false;
+            $this->items->folder_version = $this->items->version;
+            
+            $data = $this->app['db']->table('plugins')->where('plugin', $this->items->uid)->get();
+            foreach($data as $value){
+                $this->items->{$value->key} = $value->value;   
+            }
+            
+        }
+    }
+    
+    public function register(){
+        //setup autoloader to save plugins having to do it every time
+        ClassLoader::register();
+        ClassLoader::addDirectories(array($this->items->path . '/src', $this->items->path . '/src/migrations'));
+
+        //require autoload files - not advised really, plugins should make full use of service providers to add functionality
+        if(isset($this->items->autoload->files)){
+            foreach( (array) $this->items->autoload->files as $file){
+                $this->app['files']->requireOnce($this->items->path . '/' . $file);
+            }
+        }
+
+        //register providers
+        foreach( (array) $this->items->providers as $provider){
+            $this->app->register($provider);
         }
     }
 

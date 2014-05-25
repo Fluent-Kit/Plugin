@@ -43,7 +43,7 @@ class Finder
 
         foreach ($folders as $folder) {
             $name = $this->parsePluginNameFromPath($folder);
-            $this->collection->put($name, new Manifest($file, rtrim($folder, '/').'/'));
+            $this->collection->put($name, new Manifest($file, $this->app, rtrim($folder, '/').'/'));
         }
 
         return $this->collection;

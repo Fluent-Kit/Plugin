@@ -3,6 +3,8 @@ namespace FluentKit\Plugin;
 
 use Illuminate\Container\Container as Application;
 
+use Artisan;
+
 class Container
 {
     /**
@@ -32,6 +34,8 @@ class Container
      * @var string
      */
     protected $relativeUrl;
+    
+    public $buffer;
 
     /**
      * Start theme engine, this should be called from application booted
@@ -63,7 +67,9 @@ class Container
     }
 
     public function activated(){
-    	return $this->app['fluentkit.plugin.finder']->collection();
+    	return $this->app['fluentkit.plugin.finder']->collection()->filter(function($plugin){
+            return $plugin->active;
+        });
     }
 
     /**
@@ -81,15 +87,64 @@ class Container
     }
     
     public function migrate($key){
-        //php artisan migrate --path=../content/plugins/$key/migrations
+        $path = '../content/plugins/'.$key.'/src/migrations';
+        $this->buffer = new \Symfony\Component\Console\Output\BufferedOutput;
+        $this->buffer->writeln('Running '.$key.' Plugin Migrations');
+        Artisan::call('migrate', array('--path' => $path), $this->buffer);
     }
     
-    public function install($key){}
+    public function activate($key){
+        $plugin = $this->get($key);
+        
+        if($plugin->active)
+            return false;
+        
+        $this->migrate($key);
+        $plugin = $this->get($key);
+        $this->app['db']->table('plugins')->insert(array(
+            array('plugin' => $key, 'key' => 'active', 'value' => true),
+            array('plugin' => $key, 'key' => 'version', 'value' => $plugin->version)
+        ));
+        $this->app['events']->fire('plugin.'.$key.'.activated');
+    }
     
-    public function upgrade($key){}
+    public function upgrade($key){
+        $plugin = $this->get($key);
+        
+        if($plugin->version == $plugin->folder_version || !$plugin->active)
+            return false;
+        
+        $this->migrate($key);
+        $this->app['db']->table('plugins')->where('plugin', $key)->where('key', 'version')->update(array('value' => $plugin->folder_version));
+        $this->app['events']->fire('plugin.'.$key.'.upgraded');
+        
+        return true;
+    }
     
-    public function uninstall($key){}
+    public function deactivate($key){
+        if(!$plugin->active)
+            return false;
+        
+        $this->app['db']->table('plugins')->where('plugin', $key)->delete();
+        $this->app['events']->fire('plugin.'.$key.'.deactivated');
+    }
     
-    public function delete($key){}
+    public function uninstall($key){
+        $this->deactivate($key);
+        $this->app['events']->fire('plugin.'.$key.'.uninstalled');
+        return true;
+    }
+    
+    public function delete($key){
+        $this->uninstall($key);
+        try{
+            $path = '../content/plugins/'.$key;
+            $this->app['files']->remove($path);
+        }catch(\Symfony\Component\Filesystem\Exception\IOException $e){
+            return false;
+        }
+        $this->app['events']->fire('plugin.'.$key.'.deleted');
+        return true;
+    }
 
 }
