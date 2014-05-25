@@ -28,7 +28,7 @@ class PluginServiceProvider extends ServiceProvider {
 
         	//setup autoloader to save plugins having to do it every time
         	ClassLoader::register();
-        	ClassLoader::addDirectories(array($plugin->path . '/src' ));
+        	ClassLoader::addDirectories(array($plugin->path . '/src', $plugin->path . '/migrations'));
 
         	//require autoload files - not advised really, plugins should make full use of service providers to add functionality
         	if(isset($plugin->autoload->files)){
@@ -43,13 +43,13 @@ class PluginServiceProvider extends ServiceProvider {
         	}
         });
 
-    }
+        //register facades
+    	$loader = AliasLoader::getInstance();
 
-    public function plugin($package, $namespace = null, $path = null)
-	{
-		$path = rtrim($this->app['path.public'], '/') . '/content/plugins/' . $path;
-		return $this->package($package, $namespace, $path);
-	}
+		//fluent aliases
+        $loader->alias('Plugin', 'FluentKit\Plugin\Facade');
+        
+    }
 
     /**
      * Bootstrap the application events.
@@ -58,11 +58,6 @@ class PluginServiceProvider extends ServiceProvider {
      */
     public function boot()
     {
-    	//register facades
-    	$loader = AliasLoader::getInstance();
-
-		//fluent aliases
-        $loader->alias('Plugin', 'FluentKit\Plugin\Facade');
 
     }
 

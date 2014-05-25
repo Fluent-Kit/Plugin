@@ -34,13 +34,6 @@ class Container
     protected $relativeUrl;
 
     /**
-     * Booted indicator.
-     *
-     * @var boolean
-     */
-    protected $booted = false;
-
-    /**
      * Start theme engine, this should be called from application booted
      * or whenever we need to overwrite current active theme per request.
      *
@@ -86,5 +79,17 @@ class Container
 		});
 		return $plugins->first();
     }
+    
+    public function migrate($key){
+        //php artisan migrate --path=../content/plugins/$key/migrations
+    }
+    
+    public function install($key){}
+    
+    public function upgrade($key){}
+    
+    public function uninstall($key){}
+    
+    public function delete($key){}
 
 }
